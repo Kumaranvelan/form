@@ -13,8 +13,10 @@ interface Person {
   commission : number;
   date : string;
   logo: string;
-  criticalaccount :string[];
+  criticalAccountYes :string[];
+  criticalAccountNo: string[];
   payment : string[];
+  [key: string]: string | string[] | number;
 }
 const App = () => {
   const [persons, setPersons] = useState<Person[]>([])
@@ -32,37 +34,92 @@ const App = () => {
     commission: 0,
     date: '',
     logo: '',
-    criticalaccount: [],
+    criticalAccountYes: [],
+    criticalAccountNo:[],
     payment: [],
   });
-
-  console.log(persons);
-
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editFormData, setEditFormData] = useState<Person | null>(null);
+  const [selectedType, setSelectedType] = useState<string>(''); // Declare selectedType at the top
+  const [criticalAccountYes, setCriticalAccountYes] = useState<boolean>(false); // Declare criticalAccountYes
+  const [criticalAccountNo, setCriticalAccountNo] = useState<boolean>(false); // Declare criticalAccountNo
+
+
+  console.log(persons);
 
   const handleInputChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
     field: string
   ) => {
-    const { name, value } = event.target;
-    if (editIndex !== null) {
-      // If in edit mode, update the editFormData
-      setEditFormData((prevData) => {
-        return {
-          ...(prevData as Person),
-          [field]: value,
-        };
-      });
+    const { name, value, type } = event.target;
+  
+    if (type === 'checkbox') {
+      const checkbox = event.target as HTMLInputElement; // Use type assertion for checkbox
+  
+      if (editIndex !== null) {
+        // If in edit mode, update the editFormData
+        setEditFormData((prevData) => {
+          const updatedArray = checkbox.checked
+            ? [value]
+            : (prevData![field] as string[]).filter((item) => item !== value);
+          return {
+            ...(prevData as Person),
+            [field]: updatedArray,
+          };
+        });
+      } else {
+        // Otherwise, update the regular formData
+        setFormData((prevData) => {
+          const updatedArray = checkbox.checked
+            ? [value]
+            : (prevData![field] as string[]).filter((item) => item !== value);
+          return {
+            ...prevData,
+            [field]: updatedArray,
+          };
+        });
+      }
     } else {
-      // Otherwise, update the regular formData
-      setFormData({ ...formData, [name]: value });
+      // Handle other input types (text, select, textarea) as before
+      if (editIndex !== null) {
+        // If in edit mode, update the editFormData
+        setEditFormData((prevData) => {
+          return {
+            ...(prevData as Person),
+            [field]: value,
+          };
+        });
+      } else {
+        // Otherwise, update the regular formData
+        setFormData({ ...formData, [name]: value });
+      }
     }
   };
   
-const AddPerson = (event: React.FormEvent) => {
+  
+  const AddPerson = (event: React.FormEvent) => {
     event.preventDefault();
-    setPersons((prevPersons) => [...prevPersons, formData]);
+  
+    const newPerson: Person = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      website: formData.website,
+      contact: formData.contact,
+      number: formData.number,
+      another: formData.another,
+      notes: formData.notes,
+      type: [selectedType], // Wrap selectedType in an array
+      category: formData.category,
+      commission: formData.commission,
+      date: formData.date,
+      logo: formData.logo,
+      criticalAccountYes: criticalAccountYes ? ['Yes'] : [],
+      criticalAccountNo: criticalAccountNo ? ['No'] : [],
+      payment: formData.payment,
+    };
+  
+    setPersons((prevPersons) => [...prevPersons, newPerson]);
     // Reset the form data after adding a person
     setFormData({
       name: '',
@@ -72,16 +129,22 @@ const AddPerson = (event: React.FormEvent) => {
       contact: '',
       number: 0,
       another: '',
-       notes: '',
+      notes: '',
       type: [],
       category: [],
       commission: 0,
       date: '',
       logo: '',
-      criticalaccount: [],
+      criticalAccountYes: [],
+      criticalAccountNo: [],
       payment: [],
     });
+  
+    setSelectedType('');
+    setCriticalAccountYes(false);
+    setCriticalAccountNo(false);
   };
+  
 
   const handleDelete = (index: number) => {
   const confirmDelete = window.confirm('Are you sure you want to delete this person?');
@@ -93,25 +156,76 @@ const AddPerson = (event: React.FormEvent) => {
   }
 };
 
-const handleEdit = (index: number) => {
-  
-  setEditIndex(index);
-  setEditFormData(persons[index]);
-};
+  const handleEdit = (index: number) => {
+    setEditIndex(index);
+    setEditFormData(persons[index]);
+  };
+
 
 const handleEditSubmit = (event:React.FormEvent) => {
   event.preventDefault();
   if (editIndex !== null && editFormData !== null) {
-    // Create a copy of the persons array
+    
     const updatedPersons = [...persons];
-    // Update the person's data in the copied array
+  
     updatedPersons[editIndex] = editFormData;
-// Update the state with the updated array and reset edit mode
+
     setPersons(updatedPersons);
     setEditIndex(null);
     setEditFormData(null);
+
+    setSelectedType('');
+    setCriticalAccountYes(false);
+    setCriticalAccountNo(false);
   }
 };
+
+
+const handlecheckboxchange = (
+  event: React.ChangeEvent<HTMLInputElement>,
+  name: keyof Person
+) => {
+  const { checked } = event.target as { checked: boolean };
+
+  if (editIndex !== null) {
+    // Update editFormData
+    setEditFormData((prevData) => {
+      const updatedArray = [...(prevData![name] as string[] || [])];
+      if (checked) {
+        updatedArray.push(name as string);
+      } else {
+        const index = updatedArray.indexOf(name as string);
+        if (index !== -1) {
+          updatedArray.splice(index, 1);
+        }
+      }
+      return {
+        ...(prevData as Person),
+        [name]: updatedArray,
+      };
+    });
+  } else {
+    // Update formData
+    setFormData((prevData) => {
+      const updatedArray = [...(prevData![name] as string[] || [])];
+      if (checked) {
+        updatedArray.push(name as string);
+      } else {
+        const index = updatedArray.indexOf(name as string);
+        if (index !== -1) {
+          updatedArray.splice(index, 1);
+        }
+      }
+      return {
+        ...prevData,
+        [name]: updatedArray,
+      };
+    });
+  }
+};
+
+
+
    return (
     <div>
     <form id="myForm" >
@@ -133,11 +247,23 @@ const handleEditSubmit = (event:React.FormEvent) => {
     <textarea name="notes" id="notes" value={editIndex !== null ? editFormData?.notes:formData.notes} onChange={(event) => handleInputChange(event, 'notes')}></textarea>
     <label >Type:</label>
     <label >Small buisiness</label>
-    <input type="radio" name="type" id="small business" value={editIndex !== null ? editFormData?.type:"small business"}onChange={(event) => handleInputChange(event, 'small business')}/>
+    <input type="radio" name="type"  value="small business"   checked={selectedType==='small business'}
+      onChange={(event) => {
+        setSelectedType(event.target.value); 
+        handleInputChange(event, 'type'); // 
+      }}/>
     <label >Entreprise</label>
-    <input type="radio" name="type" id="entreprise" value={editIndex !== null ? editFormData?.type:"Entreprise"} onChange={(event) => handleInputChange(event, 'Entreprise')}/>
+    <input type="radio" name="type"  value="Entreprise"    checked={selectedType==='Entreprise'}
+       onChange={(event) => {
+        setSelectedType(event.target.value); // Update the selected type
+        handleInputChange(event, 'type'); // Handle form input change
+      }}/>
     <label >Entreprenuer</label>
-    <input type="radio" name="type" id="entreprenuer" value={editIndex !== null ? editFormData?.type:"Entreprenuer"} onChange={(event) => handleInputChange(event, 'Entreprenuer')}/>
+    <input type="radio" name="type"  value= "Entreprenuer"  checked={selectedType==='Entreprenuer'}
+       onChange={(event) => {
+        setSelectedType(event.target.value); // Update the selected type
+        handleInputChange(event, 'type'); // Handle form input change
+      }}/>
     <label > category</label>
     <select name="category" id="category" value={editIndex !== null ? editFormData?.category:formData.category} onChange={(event) => handleInputChange(event, 'category')}>
         <option value="clothes">clothes</option>
@@ -154,10 +280,19 @@ const handleEditSubmit = (event:React.FormEvent) => {
     <input type="file" name="file" id="file" value={editIndex !== null ? editFormData?.logo:formData.logo} onChange={(event) => handleInputChange(event, 'logo')} />
     <label >Critical Account</label>
     <label>YES</label>
-    <input type="checkbox" name="criticalaccount" id="yes" value={editIndex !== null ? editFormData?.criticalaccount:"Yes"}  onChange={(event) => handleInputChange(event, 'Yes')}  />
+    <input type="checkbox" name="criticalAccountYes"  value={"Yes"}  checked={editIndex !== null ? editFormData?.criticalAccountYes.includes('Yes') : formData.criticalAccountYes.includes('Yes')}
+  onChange={(event) => {
+    setCriticalAccountYes(event.target.checked); // Update the state for YES
+    handleInputChange(event, 'criticalAccountYes'); // Handle form input change
+  }}
+/>
     <label>NO</label>
-    <input type="checkbox" name="criticalaccount" id="no" value={editIndex !== null ? editFormData?.criticalaccount:"No"} onChange={(event) => handleInputChange(event, 'No')}/>
-    <select name="payment" id="payment" value={editIndex !== null ? editFormData?.payment:formData.payment} onChange={(event) => handleInputChange(event, 'payment')}>
+    <input type="checkbox" name=""  value={"No"} checked={editIndex !== null ? editFormData?.criticalAccountNo.includes('No') : formData.criticalAccountNo.includes('No')}
+  onChange={(event) => {
+    setCriticalAccountNo(event.target.checked);
+    handleInputChange(event, 'criticalAccountNo');
+  }} />
+    <select name="payment" id="payment" value={editIndex !== null ? editFormData?.payment:formData.payment} onChange={(event) => handleInputChange(event,'payment')}>
         <option value="cash">Cash on Payment</option>
         <option value="upi">UPI</option>
         <option value="card">Card on payment</option>
@@ -200,7 +335,8 @@ const handleEditSubmit = (event:React.FormEvent) => {
                 <td>{p.category}</td>
                 <td>{p.commission}</td>
                 <td>{p.date}</td>
-                <td>{p.criticalaccount}</td>
+                <td>{p.criticalAccountYes}
+                {p.criticalAccountNo}</td>
                 <td>{p.payment}</td>
                 <td><button onClick ={() =>handleEdit(index)}>Edit</button></td>
                 <td><button onClick={()=>handleDelete(index)}>Delete</button></td>
@@ -209,5 +345,5 @@ const handleEditSubmit = (event:React.FormEvent) => {
         </table>
     </div>
   );
-}
+      }
 export default App;
